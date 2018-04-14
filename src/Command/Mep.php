@@ -55,7 +55,7 @@ class Mep
 		$lastCommit = current($commits);
 		$content    = $this->createReport($lastCommit);
 		$this->discord->channel->createMessage([
-			'channel.id' => Channels::TEST_BOT,
+			'channel.id' => Channels::MEP,
 			'content'    => $content
 		]);
 
