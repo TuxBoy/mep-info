@@ -55,7 +55,7 @@ class Mep
 		$lastCommit = current($commits);
 		$content    = $this->createReport($lastCommit);
 		$this->discord->channel->createMessage([
-			'channel.id' => Channels::MEP,
+			'channel.id' => $config['app_debug'] === false ? Channels::MEP : Channels::TEST_BOT,
 			'content'    => $content
 		]);
 
@@ -63,6 +63,8 @@ class Mep
 	}
 
 	/**
+	 * TODO Better render for the table
+	 *
 	 * @param array $lastCommit
 	 * @return string
 	 */
@@ -70,13 +72,13 @@ class Mep
 	{
 		$report = ' MEP [360-dev](https://github.com/Oipnet/360-dev/) prod' . "\n";
 		$report .= "\n";
-		$report .= "| ----------------------------------------------------------- |\n";
-		$report .= "| Username    |  Commit                  | Commit url         |\n";
+		$report .= "| ----------------------------------------------------------- |\n\n";
+		$report .= "| **Username**    |  **Commit**          | **Commit url**     |\n\n";
 		$report .= $this->line(
 			$lastCommit['commit']['committer']['name'], $lastCommit['commit']['message'],
 			$lastCommit['html_url']
 		);
-		$report .= "| ----------------------------------------------------------- |\n";
+		$report .= "\n| ----------------------------------------------------------- |\n";
 
 		return $report . "\n";
 	}
