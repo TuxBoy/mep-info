@@ -72,13 +72,13 @@ class Mep
 	{
 		$report = ' MEP [360-dev](https://github.com/Oipnet/360-dev/) prod' . "\n";
 		$report .= "\n";
-		$report .= "| ----------------------------------------------------------- |\n\n";
-		$report .= "| **Username**    |  **Commit**          | **Commit url**     |\n\n";
+		$report .= "| ----------------------------------------------------------- |\n";
+		$report .= "| **Username**    |  **Commit**          | **Commit url**     |\n";
 		$report .= $this->line(
 			$lastCommit['commit']['committer']['name'], $lastCommit['commit']['message'],
 			$lastCommit['html_url']
 		);
-		$report .= "\n| ----------------------------------------------------------- |\n";
+		$report .= "| ----------------------------------------------------------- |\n";
 
 		return $report . "\n";
 	}
