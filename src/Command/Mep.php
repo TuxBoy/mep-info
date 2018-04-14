@@ -29,6 +29,11 @@ class Mep
 	private $container;
 
 	/**
+	 * @var string[]
+	 */
+	private $config = [];
+
+	/**
 	 * Mep constructor
 	 *
 	 * @param DiscordClient      $discord
@@ -40,6 +45,7 @@ class Mep
 		$this->discord   = $discord;
 		$this->github    = $github;
 		$this->container = $container;
+		$this->config    = $this->container->get('config');
 	}
 
 	/**
@@ -48,14 +54,13 @@ class Mep
 	 */
 	public function __invoke(string $branch, OutputInterface $output): void
 	{
-		$config  = $this->container->get('config');
 		$commits = $this->github->api('repo')
 			->commits()
-			->all($config['github_username'], $config['repo_name'], ['sha' => $branch]);
+			->all($this->config['github_username'], $this->config['repo_name'], ['sha' => $branch]);
 		$lastCommit = current($commits);
 		$content    = $this->createReport($lastCommit);
 		$this->discord->channel->createMessage([
-			'channel.id' => ($config['app_debug'] === true) ? Channels::TEST_BOT : Channels::MEP,
+			'channel.id' => ($this->config['app_debug'] === true) ? Channels::TEST_BOT : Channels::MEP,
 			'content'    => $content
 		]);
 
@@ -70,7 +75,7 @@ class Mep
 	 */
 	private function createReport(array $lastCommit): string
 	{
-		$report = ' MEP [360-dev](https://github.com/Oipnet/360-dev/) prod' . "\n";
+		$report = ' MEP [360-dev]('. $this->config['github_url'] .') prod' . "\n";
 		$report .= "\n";
 		$report .= "| ----------------------------------------------------------- |\n";
 		$report .= "| **Username**    |  **Commit**          | **Commit url**     |\n";
