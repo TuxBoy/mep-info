@@ -2,7 +2,7 @@
 namespace App;
 
 /**
- * Class Channels
+ * List Channels id
  */
 abstract class Channels
 {
