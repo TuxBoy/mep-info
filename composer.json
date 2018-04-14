@@ -1,5 +1,5 @@
 {
-    "name": "benoit/pull-info",
+    "name": "tuxboy/pull-info",
     "description": "Envoyer les informations du dernier pull sur un channel discord",
     "authors": [
         {
