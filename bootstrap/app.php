@@ -2,7 +2,7 @@
 
 return [
 
-	'app_debug'       => (bool) getenv('APP_DEBUG'),
+	'env'             => getenv('ENV'),
 
 	'discord_token'   => getenv('DISCORD_TOKEN'),
 

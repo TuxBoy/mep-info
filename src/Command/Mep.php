@@ -121,7 +121,7 @@ class Mep
 		$content    = $this->createReport($lastCommit);
 
 		$this->discord->channel->createMessage([
-			'channel.id' => ($this->config['app_debug'] === true) ? Channels::TEST_BOT : Channels::MEP,
+			'channel.id' => ($this->config['env'] === 'dev') ? Channels::TEST_BOT : Channels::MEP,
 			'content'    => $content
 		]);
 
