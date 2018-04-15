@@ -2,9 +2,10 @@
 namespace App\Command;
 
 use App\Bash;
+use App\Change;
 use App\Channels;
 use App\Interactive;
-use Github\Api\Repo;
+use App\Service\GithubService;
 use Github\Client;
 use Psr\Container\ContainerInterface;
 use RestCord\DiscordClient;
@@ -43,38 +44,64 @@ class Mep
 	private $config = [];
 
 	/**
-	 * @var string[][]
+	 * @var Change[]
 	 */
-	private $lastCommit = [];
+	private $changes = [];
+
+	/**
+	 * @var GithubService
+	 */
+	private $githubService;
 
 	/**
 	 * Mep constructor
 	 *
 	 * @param DiscordClient      $discord
 	 * @param Client             $github
+	 * @param GithubService      $githubService
 	 * @param ContainerInterface $container
 	 */
 	public function __construct(
 		DiscordClient $discord,
 		Client $github,
+		GithubService $githubService,
 		ContainerInterface $container
 	) {
-		$this->discord   = $discord;
-		$this->github    = $github;
-		$this->container = $container;
-		$this->config    = $this->container->get('config');
+		$this->discord       = $discord;
+		$this->github        = $github;
+		$this->container     = $container;
+		$this->config        = $this->container->get('config');
+		$this->githubService = $githubService;
 	}
 
-	private function addFirstCommit(string $commitName, string $sha)
+	/**
+	 * @param string $name
+	 * @param string $sha
+	 */
+	private function addPostCommit(string $name, string $sha)
 	{
-		if (!array_key_exists($commitName, $this->lastCommit)) {
-
+		if (!array_key_exists($name, $this->changes)) {
+			$this->changes[$name] = new Change($name, $sha);
 		}
+		$this->changes[$name]->post = new Change($name, $sha);
+	}
+
+	/**
+	 * @param string $name
+	 * @param string $sha
+	 */
+	private function addPreCommit(string $name, string $sha)
+	{
+		if (!array_key_exists($name, $this->changes)) {
+			$this->changes[$name] = new Change($name, $sha);
+		}
+		$this->changes[$name]->pre = new Change($name, $sha);
 	}
 
 	/**
 	 * @param string          $project_root
 	 * @param bool            $branch
+	 * @param bool            $interactive
 	 * @param OutputInterface $output
 	 */
 	public function __invoke(string $project_root, bool $branch, bool $interactive, OutputInterface $output): void
@@ -83,19 +110,15 @@ class Mep
 		chdir($project_root);
 		$this->composerUpdate();
 
-		/** @var $repo Repo */
-		$repo        = $this->github->api('repo');
 		$partsBranch = explode('/', $this->branch);
 		$git_branch  = end($partsBranch);
-		$commits     = $repo
+		$commits     = $this->githubService->getRepo()
 			->commits()
 			->all($this->config['github_username'], $this->config['repo_name'], ['sha' => $git_branch]);
 
 
 		$lastCommit = current($commits);
-		$this->addFirstCommit($lastCommit['commit']['message'], $lastCommit['sha']);
-
-		$content = $this->createReport($lastCommit);
+		$content    = $this->createReport($lastCommit);
 
 		$this->discord->channel->createMessage([
 			'channel.id' => ($this->config['app_debug'] === true) ? Channels::TEST_BOT : Channels::MEP,
@@ -111,7 +134,7 @@ class Mep
 	private function composerUpdate(): void
 	{
 		if (file_exists('composer.phar')) {
-			exec('php composer.phar update --no-dev');
+			Bash::run('php composer.phar update --no-dev');
 		}
 	}
 
@@ -142,11 +165,13 @@ class Mep
 		$output->writeln('Git : Starting MEP with branch/commit ' . $branch);
 		// Detect current revision (before update)
 		$previousRevisionHash = Bash::run('git rev-parse HEAD');
+		$this->addPreCommit('360-dev', $previousRevisionHash);
 		$output->writeln('Git : pre MEP ' . $previousRevisionHash);
 		Bash::run('git checkout ' . $branch);
 
 		// Detect current revision (after update)
 		$commitIdAfter = Bash::run('git rev-parse HEAD');
+		$this->addPostCommit('360-dev', $commitIdAfter);
 	}
 
 	/**
@@ -160,11 +185,20 @@ class Mep
 		$report = ' MEP [360-dev]('. $this->config['github_url'] .') prod' . "\n";
 		$report .= "\n";
 		$report .= "| ----------------------------------------------------------- |\n";
-		$report .= "| **Username**    |  **Commit**          | **Commit url**     |\n";
-		$report .= $this->line(
-			$lastCommit['commit']['committer']['name'], $lastCommit['commit']['message'],
-			$lastCommit['html_url']
-		);
+		// Get diff between two commits
+		$changesToReport = array_filter($this->changes, function (Change $change) {
+			return $change->pre->getSha() !== $change->post->getSha();
+		});
+		if (count($changesToReport) === 0) {
+			$report .= "\t\t **No changes.** \n";
+		} else {
+
+			$report .= "| **Username**    |  **Commit**          | **Commit url**     |\n";
+			$report .= $this->line(
+				$lastCommit['commit']['committer']['name'], $lastCommit['commit']['message'],
+				$lastCommit['html_url']
+			);
+		}
 		$report .= "| ----------------------------------------------------------- |\n";
 
 		return $report . "\n";
