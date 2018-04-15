@@ -12,9 +12,10 @@ trait Interactive
 	/**
 	 * Gives choice to user from a list
 	 *
-	 * @param string $step
-	 * @param array  $choices
-	 * @param bool   $interactive
+	 * @param string          $step
+	 * @param array           $choices
+	 * @param OutputInterface $output
+	 * @param bool            $interactive
 	 * @return null|string
 	 */
 	public function choose(
