@@ -9,6 +9,6 @@ $app = new \Silly\Edition\PhpDi\Application();
 
 require __DIR__ . '/bootstrap/container.php';
 
-$app->command('mep [branch]', \App\Command\Mep::class)->defaults(['branch' => 'master']);
+$app->command('mep [--project_root=] [--branch] [--interactive]', \App\Command\Mep::class);
 
 $app->run();

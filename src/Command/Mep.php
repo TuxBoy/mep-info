@@ -1,7 +1,10 @@
 <?php
 namespace App\Command;
 
+use App\Bash;
 use App\Channels;
+use App\Interactive;
+use Github\Api\Repo;
 use Github\Client;
 use Psr\Container\ContainerInterface;
 use RestCord\DiscordClient;
@@ -12,6 +15,12 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class Mep
 {
+	use Interactive;
+
+	/**
+	 * @var string
+	 */
+	private $branch;
 
 	/**
 	 * @var DiscordClient
@@ -34,37 +43,110 @@ class Mep
 	private $config = [];
 
 	/**
+	 * @var string[][]
+	 */
+	private $lastCommit = [];
+
+	/**
 	 * Mep constructor
 	 *
 	 * @param DiscordClient      $discord
 	 * @param Client             $github
 	 * @param ContainerInterface $container
 	 */
-	public function __construct(DiscordClient $discord, Client $github, ContainerInterface $container)
-	{
+	public function __construct(
+		DiscordClient $discord,
+		Client $github,
+		ContainerInterface $container
+	) {
 		$this->discord   = $discord;
 		$this->github    = $github;
 		$this->container = $container;
 		$this->config    = $this->container->get('config');
 	}
 
+	private function addFirstCommit(string $commitName, string $sha)
+	{
+		if (!array_key_exists($commitName, $this->lastCommit)) {
+
+		}
+	}
+
 	/**
-	 * @param string          $branch
+	 * @param string          $project_root
+	 * @param bool            $branch
 	 * @param OutputInterface $output
 	 */
-	public function __invoke(string $branch, OutputInterface $output): void
+	public function __invoke(string $project_root, bool $branch, bool $interactive, OutputInterface $output): void
 	{
-		$commits = $this->github->api('repo')
+		$this->pullMainProject($project_root, $branch, $interactive, $output);
+		chdir($project_root);
+		$this->composerUpdate();
+
+		/** @var $repo Repo */
+		$repo        = $this->github->api('repo');
+		$partsBranch = explode('/', $this->branch);
+		$git_branch  = end($partsBranch);
+		$commits     = $repo
 			->commits()
-			->all($this->config['github_username'], $this->config['repo_name'], ['sha' => $branch]);
+			->all($this->config['github_username'], $this->config['repo_name'], ['sha' => $git_branch]);
+
+
 		$lastCommit = current($commits);
-		$content    = $this->createReport($lastCommit);
+		$this->addFirstCommit($lastCommit['commit']['message'], $lastCommit['sha']);
+
+		$content = $this->createReport($lastCommit);
+
 		$this->discord->channel->createMessage([
 			'channel.id' => ($this->config['app_debug'] === true) ? Channels::TEST_BOT : Channels::MEP,
 			'content'    => $content
 		]);
 
-		$output->writeln("Mep ok sur la branche $branch");
+		$output->writeln("\033[1;33] Mep done. \033[0m\n");
+	}
+
+	/**
+	 * Composer update project
+	 */
+	private function composerUpdate(): void
+	{
+		if (file_exists('composer.phar')) {
+			exec('php composer.phar update --no-dev');
+		}
+	}
+
+	/**
+	 * Pull main project and report it
+	 *
+	 * @param string          $project_root
+	 * @param bool            $branch
+	 * @param bool            $interactive
+	 * @param OutputInterface $output
+	 */
+	private function pullMainProject(
+		string $project_root, bool $branch, bool $interactive, OutputInterface $output
+	) {
+		chdir($project_root);
+		Bash::run('git fetch --all --prune');
+
+		if ($branch) {
+			$result = Bash::runByArray('git branch -r');
+			array_walk($result, function (&$message) { $message = trim($message); });
+			$result = array_filter($result);
+			$output->writeln('Git : Remote branch(es) are');
+			$branch = $this->choose('Git', array_reverse($result), $output, $interactive);
+		} else {
+			$branch = 'origin/master';
+		}
+
+		$output->writeln('Git : Starting MEP with branch/commit ' . $branch);
+		// Detect current revision (before update)
+		$previousRevisionHash = Bash::run('git rev-parse HEAD');
+		$output->writeln('Git : pre MEP ' . $previousRevisionHash);
+		Bash::run('git checkout ' . $branch);
+
+		// Detect current revision (after update)
+		$commitIdAfter = Bash::run('git rev-parse HEAD');
 	}
 
 	/**
