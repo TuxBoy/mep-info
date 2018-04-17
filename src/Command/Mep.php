@@ -158,12 +158,12 @@ class Mep
 			array_walk($result, function (&$message) { $message = trim($message); });
 			$result = array_filter($result);
 			$output->writeln('Git : Remote branch(es) are');
-			$branch = $this->choose('Git', array_reverse($result), $output, $interactive);
+			$this->branch = $this->choose('Git', array_reverse($result), $output, $interactive);
 		} else {
-			$branch = 'origin/master';
+			$this->branch = 'origin/master';
 		}
 
-		$output->writeln('Git : Starting MEP with branch/commit ' . $branch);
+		$output->writeln('Git : Starting MEP with branch/commit ' . $this->branch);
 		// Detect current revision (before update)
 		$previousRevisionHash = Bash::run('git rev-parse HEAD');
 		$this->addPreCommit('360-dev', $previousRevisionHash);

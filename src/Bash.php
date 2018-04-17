@@ -9,7 +9,7 @@ abstract class Bash
 
 	/**
 	 * @param string $command
-	 * @return string
+	 * @return string|null
 	 */
 	public static function run(string $command): ?string
 	{
