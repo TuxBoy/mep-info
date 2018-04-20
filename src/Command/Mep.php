@@ -150,7 +150,7 @@ class Mep
 		string $project_root, bool $branch, bool $interactive, OutputInterface $output
 	) {
 		// TODO See if the chdir here is really useful (Show warning in the server)
-		chdir($project_root);
+		// chdir($project_root);
 		Bash::run('git fetch --all --prune');
 
 		if ($branch) {
@@ -169,6 +169,7 @@ class Mep
 		$this->addPreCommit('360-dev', $previousRevisionHash);
 		$output->writeln('Git : pre MEP ' . $previousRevisionHash);
 		Bash::run('git checkout ' . $branch);
+		Bash::run('git pull');
 
 		// Detect current revision (after update)
 		$commitIdAfter = Bash::run('git rev-parse HEAD');
