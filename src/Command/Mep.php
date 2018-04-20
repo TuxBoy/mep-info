@@ -107,7 +107,8 @@ class Mep
 	public function __invoke(string $project_root, bool $branch, bool $interactive, OutputInterface $output): void
 	{
 		$this->pullMainProject($project_root, $branch, $interactive, $output);
-		chdir($project_root);
+		// TODO See if the chdir here is really useful (Show warning in the server)
+		// chdir($project_root);
 		$this->composerUpdate();
 
 		$partsBranch = explode('/', $this->branch);
@@ -149,7 +150,6 @@ class Mep
 	private function pullMainProject(
 		string $project_root, bool $branch, bool $interactive, OutputInterface $output
 	) {
-		// TODO See if the chdir here is really useful (Show warning in the server)
 		chdir($project_root);
 		Bash::run('git fetch --all --prune');
 
