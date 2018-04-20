@@ -168,8 +168,9 @@ class Mep
 		$previousRevisionHash = Bash::run('git rev-parse HEAD');
 		$this->addPreCommit('360-dev', $previousRevisionHash);
 		$output->writeln('Git : pre MEP ' . $previousRevisionHash);
-		Bash::run('git checkout ' . $branch);
-		Bash::run('git pull ' . $branch);
+		Bash::run('git checkout ' . $this->branch);
+		list($remote, $branch) = explode('/', $this->branch);
+		Bash::run('git pull ' . $remote . ' ' . $branch);
 
 		// Detect current revision (after update)
 		$commitIdAfter = Bash::run('git rev-parse HEAD');
