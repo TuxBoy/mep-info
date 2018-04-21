@@ -135,7 +135,7 @@ class Mep
 	private function composerUpdate(): void
 	{
 		if (file_exists('composer.phar')) {
-			Bash::run('php composer.phar update --no-dev');
+			Bash::run('php composer.phar update --no-dev --optimize-autoloader');
 		}
 	}
 
